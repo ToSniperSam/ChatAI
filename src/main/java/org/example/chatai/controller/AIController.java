@@ -1,9 +1,9 @@
 package org.example.chatai.controller;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.chatai.config.OpenAIConfig;
-import org.example.chatai.req.OpenAIRequest;
-import org.example.chatai.res.OpenAIResponse;
+import org.example.chatai.chat.config.OpenAIConfig;
+import org.example.chatai.chat.req.OpenAIRequest;
+import org.example.chatai.chat.res.OpenAIResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;

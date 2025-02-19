@@ -1,0 +1,35 @@
+services:
+  nginx:
+    image: nginx:1.25.1
+    container_name: nginx
+    restart: always
+    ports:
+      - '443:443'
+      - '80:80'
+    volumes:
+      - ./nginx/html:/usr/share/nginx/html
+    privileged: true
+
+  # 部署后端项目
+  s-pay:
+    image: system/s-pay-app:1.0
+    container_name: s-pay-mvc
+    restart: on-failure
+    ports:
+      - "8088:8088"
+    environment:
+      - TZ=PRC
+      - SERVER_PORT=8088
+    volumes:
+      - ./log:/data/log
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    driver: bridge
