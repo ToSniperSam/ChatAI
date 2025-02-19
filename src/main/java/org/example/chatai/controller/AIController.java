@@ -1,8 +1,9 @@
-package org.example.controller;
+package org.example.chatai.controller;
 
-import org.example.config.OpenAIConfig;
-import org.example.req.OpenAIRequest;
-import org.example.res.OpenAIResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.example.chatai.config.OpenAIConfig;
+import org.example.chatai.req.OpenAIRequest;
+import org.example.chatai.res.OpenAIResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import java.util.Collections;
 
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class AIController {
 
     @Autowired
@@ -48,6 +50,7 @@ public class AIController {
 
         // 处理响应
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            log.info("Response from OpenAI: {}", response.getBody().getChoices().get(0).getMessage().getContent());
             return response.getBody().getChoices().get(0).getMessage().getContent();
         } else {
             return "Error: Unable to get response from OpenAI";

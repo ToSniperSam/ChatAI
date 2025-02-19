@@ -1,4 +1,4 @@
-package org.example.req;
+package org.example.chatai.req;
 
 import java.util.List;
 

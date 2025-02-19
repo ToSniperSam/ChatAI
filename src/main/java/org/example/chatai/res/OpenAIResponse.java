@@ -1,4 +1,4 @@
-package org.example.res;
+package org.example.chatai.res;
 
 import java.util.List;
 
@@ -14,6 +14,14 @@ public class OpenAIResponse {
         this.choices = choices;
     }
 
+    @Override
+    public String toString() {
+        // 返回响应的主要内容，确保打印有用信息
+        return "OpenAIResponse{" +
+                "choices=" + choices +
+                '}';
+    }
+
     public static class Choice {
         private Message message;
 
@@ -21,6 +29,8 @@ public class OpenAIResponse {
         public Message getMessage() {
             return message;
         }
+
+
 
         public void setMessage(Message message) {
             this.message = message;

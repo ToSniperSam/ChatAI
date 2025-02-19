@@ -1,29 +1,23 @@
-package org.example.config;
+package org.example.chatai.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConfigurationProperties(prefix = "openai.api")
 public class OpenAIConfig {
 
-    private String key;
+    @Value("${openai.api.key}")
+    private String apiKey;
+
+    // 自定义的 OpenAI API 端点
+    @Value("${openai.api.endpoint}")
     private String endpoint;
 
-    // Getters and Setters
     public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
+        return apiKey;
     }
 
     public String getEndpoint() {
         return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
     }
 }
