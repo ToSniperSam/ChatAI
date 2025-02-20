@@ -72,7 +72,7 @@ public class WeixinPortalController {
 
             if ("event".equals(message.getMsgType()) && "SCAN".equals(message.getEvent())) {
                 loginService.saveLoginState(message.getTicket(), openid);
-                return buildMessageTextEntity(openid, "狗狗喜欢刘思月");
+                return buildMessageTextEntity(openid, "你好，我是AI小杨");
             }
 
             // 调用 OpenAI 服务获取回复

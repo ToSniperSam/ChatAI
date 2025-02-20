@@ -11,9 +11,9 @@ services:
     privileged: true
 
   # 部署后端项目
-  s-pay:
-    image: system/s-pay-app:1.0
-    container_name: s-pay-mvc
+  chatAI:
+    image: system/chatai:1.0
+    container_name: chatai
     restart: on-failure
     ports:
       - "8088:8088"

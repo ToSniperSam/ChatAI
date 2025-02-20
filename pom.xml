@@ -5,9 +5,10 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.2</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <version>2.7.8</version> <!-- 确保使用与 Java 11 兼容的版本 -->
+        <relativePath/>
     </parent>
+
     <groupId>org.example</groupId>
     <artifactId>chatai</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -15,9 +16,12 @@
     <description>chatai</description>
     <url/>
     <properties>
-        <java.version>17</java.version>
+        <java.version>11</java.version>  <!-- 保持 Java 11 -->
         <xstream.version>1.4.20</xstream.version>
+        <maven.compiler.source>11</maven.compiler.source>  <!-- 确保 Java 编译源为 11 -->
+        <maven.compiler.target>11</maven.compiler.target>  <!-- 确保 Java 编译目标为 11 -->
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -30,10 +34,11 @@
             <version>31.1-jre</version>
         </dependency>
 
+        <!-- Jakarta Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
-            <version>6.0.0</version> <!-- 修复版本号，适配 Spring Boot 3.x -->
+            <version>6.0.0</version>
             <scope>provided</scope>
         </dependency>
 
@@ -94,11 +99,16 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
                 <configuration>
+                    <source>11</source>  <!-- 设置 Java 源代码版本为 11 -->
+                    <target>11</target>  <!-- 设置 Java 目标版本为 11 -->
+                    <encoding>UTF-8</encoding>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
+                            <version>1.18.26</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
@@ -106,6 +116,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.7.8</version> <!-- 保证插件版本兼容 Java 11 -->
                 <configuration>
                     <excludes>
                         <exclude>
