@@ -1,5 +1,5 @@
 # 基础镜像
-FROM openjdk:11-jre-slim
+FROM openjdk:8-jre-slim
 
 # 作者
 MAINTAINER yangla

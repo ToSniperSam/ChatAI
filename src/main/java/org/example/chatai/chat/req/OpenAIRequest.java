@@ -27,6 +27,15 @@ public class OpenAIRequest {
         private String role;
         private String content;
 
+        // 全参构造函数
+        public Message(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+
+        // 默认构造函数（必须保留）
+        public Message() {}
+
         // Getters and Setters
         public String getRole() {
             return role;
