@@ -120,11 +120,11 @@ public class WeixinPortalController {
             case "SCAN":
                 loginService.saveLoginState(message.getTicket(), openid);
                 return CompletableFuture.completedFuture(
-                        buildResponse(openid, "扫码成功！我是AI助手")
+                        buildResponse(openid, "扫码成功！我是杨济赫创造的AI助手")
                 );
             case "subscribe":
                 return CompletableFuture.completedFuture(
-                        buildResponse(openid, "感谢关注！我是AI助手")
+                        buildResponse(openid, "感谢关注！我是杨济赫创造的AI助手")
                 );
             case "unsubscribe":
                 log.info("用户 [{}] 取消关注", openid);
@@ -138,21 +138,38 @@ public class WeixinPortalController {
     }
 
     // 文本消息处理逻辑
+// 文本消息处理逻辑
     private CompletableFuture<String> handleTextMessage(MessageTextEntity message, String openid) {
         log.info("处理文本消息，openid: {}, content: {}", openid, message.getContent());
-        return openAIService.askQuestion(message.getContent())
+        return openAIService.askQuestion(openid, message.getContent())
                 .thenApply(response -> {
                     if (StringUtils.isBlank(response)) {
                         log.warn("AI返回空结果，openid: {}", openid);
                         return buildResponse(openid, "抱歉，我暂时无法回答这个问题");
                     }
-                    log.info("AI回复用户 [{}]: {}", openid, response);
-                    return buildResponse(openid, response);
+                    // 处理 AI 的回复，去掉换行符和 "AI:" 前缀
+                    String processedResponse = formatAIResponse(response);
+                    log.info("AI回复用户 [{}]: {}", openid, processedResponse);
+                    return buildResponse(openid, processedResponse);
                 })
                 .exceptionally(e -> {
                     log.error("调用OpenAI服务失败，openid: {}", openid, e);
                     return buildErrorResponse(openid, "AI服务暂时不可用");
                 });
+    }
+
+    // 格式化 AI 回复内容的方法
+    private String formatAIResponse(String response) {
+        if (response == null) {
+            return "";
+        }
+        // 去掉换行符
+        String formattedResponse = response.replace("\n", "").replace("\r", "");
+        // 如果以 "AI:" 开头，移除前缀
+        if (formattedResponse.startsWith("AI:")) {
+            formattedResponse = formattedResponse.substring(3).trim();
+        }
+        return formattedResponse;
     }
 
     // 构建成功响应

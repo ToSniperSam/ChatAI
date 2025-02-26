@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
-
 @Slf4j
 @RestController
 @RequestMapping("/api/test")
@@ -20,8 +19,10 @@ public class TestController {
     }
 
     @PostMapping("/chat")
-    public CompletableFuture<String> testChat(@RequestBody String message) {
-        log.info("Received test request with message: {}", message);
-        return openAIService.askQuestion(message);
+    public CompletableFuture<String> testChat(
+            @RequestParam("openid") String openid, // 添加 openid 参数
+            @RequestBody String message) {
+        log.info("Received test request with openid: {}, message: {}", openid, message);
+        return openAIService.askQuestion(openid, message); // 传递 openid 和消息
     }
 }
