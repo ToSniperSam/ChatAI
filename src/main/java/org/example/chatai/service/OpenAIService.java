@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.chatai.chat.config.OpenAIConfig;
 import org.example.chatai.chat.req.OpenAIRequest;
 import org.example.chatai.chat.res.OpenAIResponse;
+import org.example.chatai.common.ChatRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.util.Collections;
+import java.util.Date;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -23,15 +24,22 @@ public class OpenAIService {
     private final OpenAIConfig openAIConfig;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final StringRedisTemplate redisTemplate; // 添加 Redis 模板
+    private final StringRedisTemplate redisTemplate;
+    private final ChatRecordRepository chatRecordRepository; // 引入数据库存储仓库
+
+    // 设定最大缓存上下文长度（字符数）
+    private static final int MAX_CONTEXT_LENGTH = 3000;
 
     @Autowired
-    public OpenAIService(OpenAIConfig openAIConfig, RestTemplate restTemplate, ObjectMapper objectMapper,
-                         StringRedisTemplate redisTemplate) {
+    public OpenAIService(OpenAIConfig openAIConfig,
+                         RestTemplate restTemplate,
+                         ObjectMapper objectMapper,
+                         StringRedisTemplate redisTemplate, ChatRecordRepository chatRecordRepository) {
         this.openAIConfig = openAIConfig;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        this.redisTemplate = redisTemplate; // 初始化 Redis 模板
+        this.redisTemplate = redisTemplate;
+        this.chatRecordRepository = chatRecordRepository;
     }
 
     @Async
@@ -39,40 +47,42 @@ public class OpenAIService {
         try {
             log.info("Received question from user [{}]: {}", userId, question);
 
-            // 构建 Redis 缓存键
+            // 1. 从 Redis 获取之前的上下文（字符串）
             String cacheKey = "chat:context:" + userId;
-
-            // 从 Redis 获取历史上下文
             String previousContext = redisTemplate.opsForValue().get(cacheKey);
+
+            // 若没有历史上下文，则初始化为空
             if (previousContext == null) {
-                log.info("No previous context found for user [{}], initializing new context.", userId);
-                previousContext = ""; // 如果没有历史上下文，初始化为空字符串
+                log.info("No previous context found for user [{}], initializing empty context.", userId);
+                previousContext = "";
             } else {
                 log.info("Retrieved previous context for user [{}]: {}", userId, previousContext);
             }
 
-            // 拼接新的上下文
-            String context = previousContext + "\nUser: " + question;
+            // 2. 将新问题拼接到上下文
+            String context = "User: " + question + "\n" + (previousContext == null ? "" : previousContext);
 
-            // 打印上下文内容
+            // 如果上下文过长，则截断前面部分（保持最新的内容）
+            if (context.length() > MAX_CONTEXT_LENGTH) {
+                context = context.substring(context.length() - MAX_CONTEXT_LENGTH);
+            }
+
             log.info("Updated context for user [{}]: {}", userId, context);
 
-            // 构建请求头
+            // 3. 构建请求体并调用 OpenAI 接口
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(openAIConfig.getKey());
 
-            // 构建请求体
             OpenAIRequest request = new OpenAIRequest();
             request.setModel("gpt-3.5-turbo");
             OpenAIRequest.Message message = new OpenAIRequest.Message("user", context);
-            request.setMessages(Collections.singletonList(message));
+            request.setMessages(java.util.Collections.singletonList(message));
 
-            // 打印请求体日志，确保上下文正确
             log.debug("Constructed OpenAI request for user [{}]: {}", userId, objectMapper.writeValueAsString(request));
 
-            // 发送请求
             HttpEntity<OpenAIRequest> entity = new HttpEntity<>(request, headers);
+
             ResponseEntity<OpenAIResponse> response = restTemplate.exchange(
                     openAIConfig.getEndpoint(),
                     HttpMethod.POST,
@@ -80,18 +90,26 @@ public class OpenAIService {
                     OpenAIResponse.class
             );
 
-            // 处理 OpenAI 返回结果
+            // 4. 处理响应结果
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null
                     && !response.getBody().getChoices().isEmpty()) {
+
                 String answer = response.getBody().getChoices().get(0).getMessage().getContent();
                 log.info("Successfully received response from OpenAI for user [{}]: {}", userId, answer);
 
-                // 将新的对话内容追加到上下文
-                String updatedContext = context + "\nAI: " + answer;
+                // 5. 将 AI 的回答拼接回上下文
+                String updatedContext = "AI: " + answer + "\n" + context;
 
-                // 写入 Redis 中的上下文
-                redisTemplate.opsForValue().set(cacheKey, updatedContext, 30, TimeUnit.MINUTES); // 设置过期时间为 30 分钟
-                log.info("Successfully updated Redis context for user [{}]: {}", userId, updatedContext);
+                // 若拼接后仍过长，则同样截断
+                if (updatedContext.length() > MAX_CONTEXT_LENGTH) {
+                    updatedContext = updatedContext.substring(0, MAX_CONTEXT_LENGTH);
+                }
+
+                // 将新的上下文存入 Redis，设置过期时间
+                redisTemplate.opsForValue().set(cacheKey, updatedContext, 30, TimeUnit.MINUTES);
+                log.info("Successfully updated Redis context for user [{}].", userId);
+
+                saveChatRecord(userId, question, answer);
 
                 return CompletableFuture.completedFuture(answer);
             } else {
@@ -102,6 +120,28 @@ public class OpenAIService {
         } catch (Exception e) {
             log.error("Error while calling OpenAI API for user [{}]", userId, e);
             return CompletableFuture.completedFuture("服务暂时不可用，请稍后重试");
+        }
+    }
+
+    private void saveChatRecord(String userId, String question, String answer) {
+        try {
+
+            // 去掉换行符
+            String formattedText = answer.replace("\n", "").replace("\r", "");
+            // 如果以 "AI:" 开头，移除前缀
+            if (formattedText.startsWith("AI:")) {
+                formattedText = formattedText.substring(3).trim();
+            }
+            ChatRecord record = new ChatRecord();
+            record.setUserId(userId);
+            record.setQuestion(question);
+            record.setAnswer(formattedText);
+            record.setCreatedAt(new Date());
+
+            chatRecordRepository.save(record);
+            log.info("Successfully saved chat record for user [{}] to database.", userId);
+        } catch (Exception e) {
+            log.error("Failed to save chat record for user [{}] to database.", userId, e);
         }
     }
 }
