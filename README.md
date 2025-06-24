@@ -114,7 +114,7 @@ Adjust these as needed for production (e.g., environment variables, other modes)
 
 ## Contact
 
-- **Maintainer**: [Your Name](mailto:your.email@example.com)
+- **Maintainer**: [Yangjihe](jyangef@connect.ust.hk)
 - **Issues & Suggestions**: Submit via [GitHub Issues](https://github.com/YourUsername/chatai/issues).
 
 ------
